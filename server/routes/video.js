@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { Video } = require("../models/Video");
 const bodyParser = require("body-parser");
+const { Subscriber } = require("../models/Subscriber");
 
 const { auth } = require("../middleware/auth");
 const multer = require("multer");
@@ -70,12 +71,48 @@ router.post("/thumbnail", (req, res) => {
 		});
 });
 
+router.post("/getSubscriptionVideos", (req, res) => {
+	Subscriber.find({ userFrom: req.body.userFrom }).exec((err, doc) => {
+		if (err) res.status(400).json({ success: false, err });
+		else {
+			let subscribedUserTo = doc.map((subsription) => {
+				return subsription.userTo;
+			});
+			Video.find({ writer: { $in: subscribedUserTo } })
+				.populate("writer")
+				.exec((err, videos) => {
+					if (err) res.status(400).json({ success: false, err });
+					return res.status(200).json({ success: true, videos });
+				});
+		}
+	});
+});
+
 router.post("/uploadVideo", (req, res) => {
 	const video = new Video(req.body);
 	video.save((err, doc) => {
 		if (err) res.status(400).json({ success: false, err });
 		return res.status(200).json({ success: true });
 	});
+});
+
+router.post("/getVideoDetail", (req, res) => {
+	console.log("finding Video", req.body);
+	Video.findOne({ _id: req.body.videoId })
+		.populate("writer")
+		.exec((err, videoDetail) => {
+			if (err) res.status(400).json({ success: false, err });
+			return res.status(200).json({ success: true, videoDetail });
+		});
+});
+
+router.get("/getVideos", (req, res) => {
+	Video.find({ privacy: 1 })
+		.populate("writer")
+		.exec((err, videos) => {
+			if (err) res.status(400).json({ success: false, err });
+			return res.status(200).json({ success: true, videos });
+		});
 });
 
 module.exports = router;
