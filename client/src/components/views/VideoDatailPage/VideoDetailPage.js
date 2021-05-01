@@ -3,12 +3,13 @@ import { Col, Row, Avatar, List } from "antd";
 import Axios from "axios";
 import SideVideo from "./Sections/SideVideo";
 import Subscribe from "./Sections/Subscribe";
-import { useSelector } from "react-redux";
+import Comment from "./Sections/Comment";
 
 function VideoDetailPage(props) {
 	const videoId = props.match.params.videoId;
 	const variable = { videoId: videoId };
 	const [VideoDetail, setVideoDetail] = useState([]);
+	const [Comments, setComments] = useState([]);
 	const currentUser = localStorage.getItem("userId");
 
 	useEffect(() => {
@@ -20,7 +21,20 @@ function VideoDetailPage(props) {
 				alert("Failed to get Video");
 			}
 		});
+
+		Axios.post("/api/comment/getComments", variable).then((response) => {
+			if (response.data.success) {
+				console.log("comments", response.data.comments);
+				setComments(response.data.comments);
+			} else {
+				alert("Failed to get comments.");
+			}
+		});
 	}, []);
+
+	function refreshFunction(newComments) {
+		setComments(Comments.concat(newComments));
+	}
 
 	if (VideoDetail.writer) {
 		const subscribeButton = VideoDetail.writer._id !== currentUser && (
@@ -46,6 +60,11 @@ function VideoDetailPage(props) {
 							/>
 						</List.Item>
 						{/* comments */}
+						<Comment
+							refreshFunction={refreshFunction}
+							commentList={Comments}
+							postId={videoId}
+						/>
 					</div>
 				</Col>
 				<Col lg={6} xs={24}>
